@@ -10,6 +10,7 @@ const PQ_STATUS_TAGS = "tags:cdegilqtuy" + (LMS_VERSION>=90000 ? "bhz124" : "") 
 const PQ_REQUIRE_AT_LEAST_1_ITEM = new Set([PQ_SAVE_ACTION, PQ_MOVE_QUEUE_ACTION, PQ_SCROLL_ACTION, PQ_SORT_ACTION, REMOVE_DUPES_ACTION]);
 const PQ_REQUIRE_MULTIPLE_ITEMS = new Set([PQ_SCROLL_ACTION, SEARCH_LIST_ACTION, PQ_SORT_ACTION, REMOVE_DUPES_ACTION]);
 const pqGroupingMap = new Map();
+const PQ_REMOVE_ACTIONS = [PQ_REMOVE_TRACK_ACTION, PQ_REMOVE_DISC_ACTION, PQ_REMOVE_ALBUM_ACTION, PQ_REMOVE_ARTIST_ACTION];
 
 function queueMakePlain(str) {
     let rating = str.indexOf(SEPARATOR+RATINGS_START);
@@ -81,16 +82,16 @@ function buildArtistAlbumLines(i, queueAlbumStyle, queueContext) {
             if (albumGroupingType(i.disccount, ALWAYS_GROUP_HEADING, i.contiguous_groups, i.added_from_work)==MULTI_GROUP_ALBUM) {
                 if (work) {
                     // track has a work tag
-                    artistAlbum = addPart(work, i.work!=i.grouping ? i.grouping : undefined)+'<br/><div class="pq-gsub">'+artistAlbum+'</div>';
+                    artistAlbum = addPart(work, i.work!=i.grouping ? i.grouping : undefined)+'<br/><div class="pq-gsub ellipsis">'+artistAlbum+'</div>';
                     ws = true;
                 } else if (i.grouping) {
                     // track has a grouping tag
-                    artistAlbum +='<br/><div class="pq-gsub">'+i.grouping+'</div>';
+                    artistAlbum +='<br/><div class="pq-gsub ellipsis">'+i.grouping+'</div>';
                     ws = true;
                 }
             } else if (i.discsubtitle) {
                 // track has a discsubtitle tag
-                artistAlbum +='<br/><div class="pq-gsub">'+i.discsubtitle+'</div>';
+                artistAlbum +='<br/><div class="pq-gsub ellipsis">'+i.discsubtitle+'</div>';
                 ws = true;
             }
         }
@@ -188,11 +189,12 @@ function parseResp(data, showTrackNum, index, showRatings, queueAlbumStyle, queu
                               isGrpHeader: artistAlbumLinesInfo && artistAlbumLinesInfo[1],
                               image: image,
                               dimcover: undefined!=image && image.endsWith(".png") && (image==DEFAULT_COVER || image==DEFAULT_RADIO_COVER || image==RANDOMPLAY_COVER),
-                              actions: [PQ_PLAY_NOW_ACTION, PQ_PLAY_NEXT_ACTION, DIVIDER, REMOVE_ACTION, PQ_REMOVE_ALBUM_ACTION, PQ_REMOVE_DISC_ACTION, ADD_TO_PLAYLIST_ACTION, PQ_ZAP_ACTION, DOWNLOAD_ACTION, SELECT_ACTION, COPY_DETAILS_ACTION, PQ_COPY_ACTION, MOVE_HERE_ACTION, CUSTOM_ACTIONS, SHOW_IMAGE_ACTION, MORE_ACTION],
+                              actions: [PQ_PLAY_NOW_ACTION, PQ_PLAY_NEXT_ACTION, DIVIDER, REMOVE_ACTION, ADD_TO_PLAYLIST_ACTION, PQ_ZAP_ACTION, DOWNLOAD_ACTION, SELECT_ACTION, COPY_DETAILS_ACTION, PQ_COPY_ACTION, MOVE_HERE_ACTION, CUSTOM_ACTIONS, SHOW_IMAGE_ACTION, MORE_ACTION],
                               duration: duration,
                               durationStr: undefined!=duration && duration>0 ? formatSeconds(duration) : undefined,
                               key: i.id+"."+index,
                               album_id: i.album_id,
+                              artist_id: i.artist_id,
                               disc: i.disc,
                               groupId: groupId,
                               url: i.url,
@@ -336,7 +338,22 @@ var lmsQueue = Vue.component("lms-queue", {
      </v-list-tile-avatar>
      <v-list-tile-title>{{ACTIONS[UNSELECT_ACTION].title}}</v-list-tile-title>
     </v-list-tile>
-    <v-list-tile v-else-if="action==PQ_REMOVE_DISC_ACTION ? undefined!=menu.item.disc && menu.item.disc>0 : action==PQ_REMOVE_ALBUM_ACTION ? undefined!=menu.item.album_id : action==PQ_COPY_ACTION ? browseSelection : action==MOVE_HERE_ACTION ? (selection.size>0 && !menu.item.selected) : action==PQ_ZAP_ACTION ? LMS_P_CS : action==DOWNLOAD_ACTION ? lmsOptions.allowDownload && menu.item.isLocal : (action!=PQ_PLAY_NEXT_ACTION || (menu.index!=currentIndex && menu.index!=currentIndex+1))" @click="itemAction(action, menu.item, menu.index, $event)">
+    <div v-else-if="action==REMOVE_ACTION && ((undefined!=menu.item.disc && menu.item.disc>0) || (undefined!=menu.item.album_id))">
+     <v-list-group v-model="menuExpanded" @click.stop="">
+      <template v-slot:activator><v-list-tile><v-list-tile-content><v-list-tile-title>{{ACTIONS[REMOVE_ACTION].title}}</v-list-tile-title></v-list-tile-content><v-list-tile></template>
+      <template v-for="subAction in PQ_REMOVE_ACTIONS">
+       <v-list-tile @click="itemAction(subAction, menu.item, menu.index, $event)" v-if="(PQ_REMOVE_DISC_ACTION==subAction && undefined!=menu.item.disc && menu.item.disc>0) || (PQ_REMOVE_ALBUM_ACTION==subAction && undefined!=menu.item.album_id) || (PQ_REMOVE_ARTIST_ACTION==subAction && undefined!=menu.item.artist_id) || PQ_REMOVE_TRACK_ACTION==subAction">
+        <v-list-tile-avatar>
+         <v-icon v-if="undefined==ACTIONS[subAction].svg">{{ACTIONS[subAction].icon}}</v-icon>
+         <img v-else class="svg-img" :src="ACTIONS[subAction].svg | svgIcon(darkUi)"></img>
+        </v-list-tile-avatar>
+        <v-list-tile-title>{{ACTIONS[subAction].title}}</v-list-tile-title>
+       </v-list-tile>
+      </template>
+     </v-list-group>
+     <v-divider></v-divider>
+    </div>
+    <v-list-tile v-else-if="action==PQ_COPY_ACTION ? browseSelection : action==MOVE_HERE_ACTION ? (selection.size>0 && !menu.item.selected) : action==PQ_ZAP_ACTION ? LMS_P_CS : action==DOWNLOAD_ACTION ? lmsOptions.allowDownload && menu.item.isLocal : (action!=PQ_PLAY_NEXT_ACTION || (menu.index!=currentIndex && menu.index!=currentIndex+1))" @click="itemAction(action, menu.item, menu.index, $event)">
      <v-list-tile-avatar>
       <v-icon v-if="undefined==ACTIONS[action].svg">{{ACTIONS[action].icon}}</v-icon>
       <img v-else class="svg-img" :src="ACTIONS[action].svg | svgIcon(darkUi)"></img>
@@ -351,7 +368,7 @@ var lmsQueue = Vue.component("lms-queue", {
     <div style="height:0px!important" v-else-if="(action==PQ_PIN_ACTION && (pinQueue || !desktopLayout || windowWide<2)) || (action==PQ_UNPIN_ACTION && (!pinQueue || !desktopLayout || windowWide<2))"/>
     <v-list-tile @click="headerAction(action, $event)" v-bind:class="{'disabled':(items.length<1 && PQ_REQUIRE_AT_LEAST_1_ITEM.has(action)) || (items.length<2 && PQ_REQUIRE_MULTIPLE_ITEMS.has(action))}" v-else-if="(!LMS_KIOSK_MODE || !HIDE_FOR_KIOSK.has(action)) && (action==PQ_SAVE_ACTION ? wide<2 : action!=PQ_MOVE_QUEUE_ACTION || showMoveAction)">
      <v-list-tile-avatar>
-      <v-icon v-if="action==PQ_TOGGLE_VIEW_ACTION && albumStyle">music_note</v-icon>
+      <v-icon v-if="action==PQ_TOGGLE_VIEW_ACTION && !albumStyle">music_note</v-icon>
       <v-icon v-else-if="undefined==ACTIONS[action].svg">{{ACTIONS[action].icon}}</v-icon>
       <img v-else class="svg-img" :src="ACTIONS[action].svg | svgIcon(darkUi)"></img>
      </v-list-tile-avatar>
@@ -379,6 +396,7 @@ var lmsQueue = Vue.component("lms-queue", {
                      repeatOff:undefined, randomMix:undefined, shuffleAll:undefined, shuffleAlbums:undefined, shuffleOff:undefined,
                      selectMultiple:undefined, removeAll:undefined, invertSelect:undefined, dstm:undefined, actions:undefined,  },
             menu: { show:false, item: undefined, x:0, y:0, index:0},
+            menuExpanded: getLocalStorageBool('queue-menu-expanded', false),
             playlist: {name: undefined, modified: false},
             selection: new Set(),
             selectionDuration: 0,
@@ -993,7 +1011,7 @@ var lmsQueue = Vue.component("lms-queue", {
                     this.clearSelection();
                     bus.$emit('playerCommand', ["playlist", "move", index, index>this.currentIndex ? this.currentIndex+1 : this.currentIndex]);
                 }
-            } else if (REMOVE_ACTION===act) {
+            } else if (REMOVE_ACTION===act || PQ_REMOVE_TRACK_ACTION==act) {
                 this.clearSelection();
                 bus.$emit('playerCommand', ["playlist", "delete", index]);
             } else if (PQ_REMOVE_ALBUM_ACTION==act) {
@@ -1010,6 +1028,9 @@ var lmsQueue = Vue.component("lms-queue", {
                     this.clearSelection();
                     this.removeIndexes(indexes);
                 }
+            } else if (PQ_REMOVE_ARTIST_ACTION==act) {
+                this.clearSelection();
+                bus.$emit('playerCommand', ["playlistcontrol", "cmd:delete", "artist_id:"+item.artist_id, "library_id:"+LMS_DEFAULT_LIBRARY]);
             } else if (MORE_ACTION===act) {
                 let clone = JSON.parse(JSON.stringify(item));
                 clone.title = queueMakePlain(item.title);
@@ -1753,6 +1774,9 @@ var lmsQueue = Vue.component("lms-queue", {
                     this.scrollToCurrent();
                }
             }
+        },
+        'menuExpanded': function(newVal) {
+            setLocalStorageVal('queue-menu-expanded', newVal);
         }
     },
     beforeDestroy() {

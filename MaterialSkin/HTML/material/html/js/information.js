@@ -115,7 +115,7 @@ Vue.component('lms-information-dialog', {
             scanInfo: undefined,
             players: [],
             plugins: {names: new Set(), details: []},
-            updates: {names: new Set(), details: [], server:false},
+            updates: {names: new Set(), details: [], server:false, serverUpdateInfoUrl: undefined},
             pluginStatus:'idle',
             rescans: [ ],
             scanning: false,
@@ -169,6 +169,7 @@ Vue.component('lms-information-dialog', {
                     this.updates.names.clear();
                     this.updates.details = [];
                     this.updates.server = updates && updates.server;
+                    this.updates.serverUpdateInfoUrl = this.updates.server ? updates.server.infoUrl : undefined;
                     if (updates && updates.plugins && updates.plugins.length>0) {
                         for (var i=0, len=updates.plugins.length; i<len; ++i) {
                             if (updates.plugins[i]!=null) {
@@ -323,6 +324,15 @@ Vue.component('lms-information-dialog', {
                                    i18n("Total artists: %1", data.result["info total artists"]),
                                    lmsOptions.supportReleaseTypes ? i18n("Total releases: %1", data.result["info total albums"]) : i18n("Total albums: %1", data.result["info total albums"]),
                                    i18n("Total tracks: %1", data.result["info total songs"])];
+                    if (undefined!=data.result["info total playlists"]) {
+                        this.library.push(i18n("Total playlists: %1", data.result["info total playlists"]));
+                    }
+                    if (undefined!=data.result["info total works"]) {
+                        this.library.push(i18n("Total works: %1", data.result["info total works"]));
+                    }
+                    if (undefined!=data.result["info total labels"]) {
+                        this.library.push(i18n("Total labels: %1", data.result["info total labels"]));
+                    }
                     if (undefined!=data.result["info total duration"]) {
                         this.library.push(i18n("Total duration: %1", formatSeconds(data.result["info total duration"], true)));
                     }
@@ -403,7 +413,7 @@ Vue.component('lms-information-dialog', {
             }
         },
         showUpdateInfo() {
-            bus.$emit('dlg.open', 'iframe', '/material/updateinfo.html', i18n('Update information'), undefined, IFRAME_HOME_CLOSES_DIALOGS);
+            bus.$emit('dlg.open', 'iframe', undefined==this.updates.serverUpdateInfoUrl ? '/material/updateinfo.html' : this.updates.serverUpdateInfoUrl, i18n('Update information'), undefined, IFRAME_HOME_CLOSES_DIALOGS);
         },
         showScanDetails() {
             openServerSettings(this.serverName, 0, '/material/settings/server/status.html');

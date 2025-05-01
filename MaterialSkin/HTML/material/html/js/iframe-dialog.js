@@ -555,15 +555,17 @@ function applyModifications(page, svgCol, darkUi, src) {
             return;
         }
 
-        copiedVars = copyVars(iframe);
-        content.documentElement.getElementsByTagName("body")[0].classList.add(IS_MOBILE ? "msk-is-touch" : "msk-is-non-touch");
-        if (darkUi) {
-            content.documentElement.getElementsByTagName("body")[0].classList.add("theme--dark");
+        var isLms = new Set(['server', 'player', 'extras', 'lms', 'help']).has(page);
+        if (isLms) {
+            copiedVars = copyVars(iframe);
+            content.documentElement.getElementsByTagName("body")[0].classList.add(IS_MOBILE ? "msk-is-touch" : "msk-is-non-touch");
+            if (darkUi) {
+                content.documentElement.getElementsByTagName("body")[0].classList.add("theme--dark");
+            }
+            fixClassicSkinRefs(content);
+            remapClassicSkinIcons(content, svgCol);
+            addHooks(content);
         }
-        fixClassicSkinRefs(content);
-        remapClassicSkinIcons(content, svgCol);
-        addHooks(content);
-
         iframeInfo.settingModified = false;
         iframeInfo.settingsPage = undefined;
         iframeInfo.settingsSelector = undefined;
@@ -576,6 +578,9 @@ function applyModifications(page, svgCol, darkUi, src) {
                 iframeInfo.settingsSelector.addEventListener("change", settingsSectionChanged);
                 settingsSectionChanged(iframeInfo.settingsSelector.value);
                 content.documentElement.classList.add("lms-settings-section-"+iframeInfo.settingsSelector.value+(LMS_VERSION<90000 || iframeInfo.settingsSelector.value!="SETUP_PLUGINS" ? "" : "_9"));
+                if (LMS_VERSION>=90100) {
+                    content.documentElement.classList.add("lms-91p");
+                }
             }
         }
 

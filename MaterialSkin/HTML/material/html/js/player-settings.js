@@ -55,7 +55,8 @@ Vue.component('lms-player-settings', {
       <v-list-tile-title>{{i18n('Color')}}</v-list-tile-title>
       <div class="color-grid">
        <template v-for="(item, index) in colorList.colors">
-        <div v-if="item.lcolor" @click="playerColor=item.key" :style="{'background':'linear-gradient(to right,'+item.lcolor+' 0%, '+item.lcolor+' 50%, '+item.color+' 50%, '+item.color+' 100%)'}" class="color-circle" v-bind:class="{'selected-color-circle':item.key==playerColor}"></div>
+        <div v-if="item.key=='lyrion'" style="height:0px;width:0px"></div>
+        <div v-else-if="item.lcolor" @click="playerColor=item.key" :style="{'background':'linear-gradient(to right,'+item.lcolor+' 0%, '+item.lcolor+' 50%, '+item.color+' 50%, '+item.color+' 100%)'}" class="color-circle" v-bind:class="{'selected-color-circle':item.key==playerColor}"></div>
         <div v-else-if="item.color" @click="playerColor=item.key" :style="{'background-color':item.color}" class="color-circle" v-bind:class="{'selected-color-circle':item.key==playerColor}"></div>
        </template>
        <div v-for="(item, index) in userColors" @click="playerColor=item.key" :style="{'background-color':item.color}" class="color-circle" v-bind:class="{'selected-color-circle':item.key==playerColor}"></div>
@@ -476,7 +477,7 @@ Vue.component('lms-player-settings', {
             this.playerLink = player.link;
             this.isGroup = player.isgroup;
             this.isSynced = false;
-            this.orig = { player: {name:player.name, icon:player.icon}, dstm:"",
+            this.orig = { player: {name:player.name, icon:player.icon, color:player.color}, dstm:"",
                           alarms: { fade:false, timeout:0, snooze:0, on:false, volume:0 },
                           library:"", crossfade:"0", smartCrossfade:false, replaygain:"" };
             this.customActions = getCustomActions(player.id, this.$store.state.unlockAll);
@@ -686,12 +687,13 @@ Vue.component('lms-player-settings', {
                 playerIdIconMap[this.playerId]=this.playerIcon;
                 setLocalStorageVal("playerIdIconMap", JSON.stringify(playerIdIconMap));
             }
+
             if (this.orig.player.color!=this.playerColor) {
-                lmsCommand(this.playerId, ["playerpref", "plugin.material-skin:color", this.playerColor]);
-                this.$store.commit('setColor', {id:this.playerId, color:this.playerColor});
                 // From icon-mapping.js
                 playerIdColorMap[this.playerId]=this.playerColor;
                 setLocalStorageVal("playerIdColorMap", JSON.stringify(playerIdColorMap));
+                lmsCommand(this.playerId, ["playerpref", "plugin.material-skin:color", this.playerColor]);
+                this.$store.commit('setColor', {id:this.playerId, color:this.playerColor});
             }
 
             // Update current player

@@ -1039,6 +1039,8 @@ div.v-subheader {
 
 .dialog-bottom-pad {
  height:var(--bottom-pad);
+ width:1px;
+ color:transparent;
 }
 
 .np-info .lms-list {
@@ -1361,7 +1363,7 @@ div.v-subheader {
  font-weight:200!important;
 }
 
-.browse-html img, .np-info-text img, .np-info-text-full img, .inline-image {
+.browse-html img, .np-info-text img:not(.svg-img), .np-info-text-full img, .inline-image {
  max-width:100% !important;
  max-height:300px !important;
  height:auto;
@@ -3685,7 +3687,8 @@ div.v-subheader {
 .msk-is-non-touch .lms-list-sub3 .v-list__tile:hover,
 .msk-is-non-touch .v-menu__content .v-list__tile:hover,
 .msk-is-non-touch .v-navigation-drawer .v-list__tile:hover,
-.msk-is-non-touch .image-grid-item:not(.defcursor):hover {
+.msk-is-non-touch .image-grid-item:not(.defcursor):hover,
+.msk-is-non-touch .v-list__group__header:hover {
  background-color:var(--list-hover-color)!important;
 }
 /*}*/
@@ -4370,4 +4373,10 @@ div.v-subheader {
 .theme--dark .v-snack__wrapper {
  opacity:0.9;
  border:1px solid var(--tab-border-color);
+}
+
+/* group headers have some weird area that reacts to hover? Disable */
+.v-list__group__header div[role="listitem"]:hover,
+.v-list__group__header div[role="listitem"] .v-list__tile:hover {
+ background-color:transparent!important;
 }

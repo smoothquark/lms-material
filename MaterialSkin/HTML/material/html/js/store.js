@@ -175,6 +175,9 @@ function updateUiSettings(state, val) {
             setLocalStorageVal(key, value);
         }
     }
+    if (COLOR_USE_STANDARD==state.colorUsage && state.coloredToolbars && state.tinted && 'lyrion'==state.color) {
+        state.tinted = false;
+    }
     if (themeChanged || undefined!=val.mai || undefined!=val.pinQueue) {
         setTimeout(function() {
             if (themeChanged) {
@@ -821,6 +824,10 @@ const store = new Vuex.Store({
         setColor(state, playerColor) {
             if (state.player && playerColor.id==state.player.id) {
                 state.player.color=playerColor.color;
+                if (COLOR_USE_PER_PLAYER==state.colorUsage) {
+                    state.color = mapPlayerColor(state.player);
+                    setTheme(state.theme, state.color, true);
+                }
             }
             for (var i=0, len=state.players.length; i<len; ++i) {
                 if (playerColor.id==state.players[i].id) {

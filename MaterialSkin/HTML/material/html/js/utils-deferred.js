@@ -7,7 +7,8 @@
 'use strict';
 
 function replaceNewLines(str) {
-    return str ? str.replace(/\n/g, "<br/>").replace(/\\n/g, "<br/>") : str;
+    try { return str ? str.replace(/\n/g, "<br/>").replace(/\\n/g, "<br/>") : str; }
+    catch (e) { return str; }
 }
 
 function openWindow(page) {
@@ -671,16 +672,16 @@ function bindNumeric(dlg) {
     dlg.boundKeys = false;
     if (!IS_MOBILE && dlg.items.length<=10 && dlg.$store.state.keyboardControl) {
         for (let i=0, len=dlg.items.length; i<len; ++i) {
-            bindKey(""+(i<9 ? i+1 : 0));
+            bindKey(""+(dlg.firstIsZero ? i : i<9 ? i+1 : 0));
         }
         dlg.boundKeys=true;
     }
 }
 
-function unbindNumeric(dlg) {
+function unbindNumeric(dlg, firstIsZero) {
     if (!IS_MOBILE && dlg.items.length<=10 && dlg.boundKeys) {
         for (let i=0, len=dlg.items.length; i<len; ++i) {
-            unbindKey(""+(i<9 ? i+1 : 0));
+            unbindKey(""+(dlg.firstIsZero ? i :i<9 ? i+1 : 0));
         }
     }
     dlg.boundKeys = false;
@@ -691,10 +692,12 @@ function handleNumeric(dlg, func, itemKey) {
         if (dlg.show && dlg.boundKeys && undefined==modifier) {
             let val = parseInt(key);
             if ((""+val)==key) {
-                if (0==val) {
-                    val=9;
-                } else {
-                    val--;
+                if (undefined==dlg.firstIsZero || !dlg.firstIsZero) {
+                    if (0==val) {
+                        val=9;
+                    } else {
+                        val--;
+                    }
                 }
                 if (val>=0 && val<dlg.items.length) {
                     func(undefined==itemKey ? dlg.items[val] : dlg.items[val][itemKey]);
@@ -819,7 +822,7 @@ function isSameArtistsL(item, rolea, roleList) {
     return false;
 }
 
-function roleDisplayName(role) {
+function roleDisplayName(role, showArtist) {
     if (undefined==role) {
         return undefined;
     }
@@ -827,8 +830,14 @@ function roleDisplayName(role) {
     if (val<=0) {
         return undefined;
     }
-    if (val==ARTIST_ROLE || val==ALBUM_ARTIST_ROLE || val==TRACK_ARTIST_ROLE) {
-        return undefined;
+    if (val==ARTIST_ROLE) {
+        return showArtist ? i18n("Artist") : undefined;
+    }
+    if (val==ALBUM_ARTIST_ROLE) {
+        return showArtist ? i18n("Main artist") : undefined;
+    }
+    if (val==TRACK_ARTIST_ROLE) {
+        return showArtist ? i18n("Track artist") : undefined;
     }
     if (val==BAND_ARTIST_ROLE) {
         return i18n("Band/orchestra");
@@ -928,4 +937,10 @@ function filterComments(comments) {
         return usable.join(" / ");
     }
     return undefined;
+}
+
+function logNoPlayerError(obj) {
+    if (!obj.$store.state.player) {
+        bus.$emit('showError', undefined, i18n('No Player'));
+    }
 }

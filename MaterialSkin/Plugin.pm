@@ -804,6 +804,12 @@ sub _cliCommand {
     }
 
     if ($cmd eq 'map') {
+        my $va = $request->getParam('va');
+        if ($va) {
+            $request->addResult('artist_id', Slim::Schema->variousArtistsObject->id);
+            $request->setStatusDone();
+            return;
+        }
         my $genre = $request->getParam('genre');
         my $artist = $request->getParam('artist');
         my $genre_id = $request->getParam('genre_id');
@@ -1690,6 +1696,30 @@ sub _cliCommand {
                 $request->addResultLoop('item_loop', $cnt, 'icon', $icon);
                 $request->addResultLoop('item_loop', $cnt, 'type', 'redirect');
                 my $actions = { go => { cmd => [ $app->tag, 'items' ], params => { menu => $app->tag } } };
+                $request->addResultLoop('item_loop', $cnt, 'actions', $actions);
+                $cnt++;
+            }
+        }
+
+        if ($prefs->get('combineAppsAndRadio')) {
+            my $radiosReq = Slim::Control::Request::executeRequest(undef, ['radios', 0, 1000, 'menu:radio'] );
+            my $addTuneIn = 0;
+            foreach my $item ( @{ $radiosReq->getResult('item_loop') || [] } ) {
+                if (!$item->{'icon-id'} || !_startsWith($item->{'icon-id'}, '/plugins/TuneIn')) {
+                    foreach my $key (keys %$item) {
+                        $request->addResultLoop('item_loop', $cnt, $key, $item->{$key});
+                    }
+                    $cnt++;
+                } else {
+                    $addTuneIn = 1;
+                }
+            }
+            if ($addTuneIn==1) {
+                $request->addResultLoop('item_loop', $cnt, 'addAction', 'go');
+                $request->addResultLoop('item_loop', $cnt, 'type', 'redirect');
+                $request->addResultLoop('item_loop', $cnt, 'text', 'TuneIn');
+                $request->addResultLoop('item_loop', $cnt, 'svg', '/material/svg/tunein');
+                my $actions = { go => { cmd => [ 'radios' ], params => { menu => 'radio' } } };
                 $request->addResultLoop('item_loop', $cnt, 'actions', $actions);
                 $cnt++;
             }
@@ -2643,7 +2673,7 @@ sub _sendMaterialImage {
 
 sub _genreHandler {
     my ( $httpClient, $response ) = @_;
-    my $fileName = basename($response->reques->uri->path);
+    my $fileName = basename($response->request->uri->path);
     if (0==_sendMaterialImage($httpClient, $response, "genres", $fileName)) {
         _sendFallbackImage($httpClient, $response, "genres", $fileName, "nogenre");
     }

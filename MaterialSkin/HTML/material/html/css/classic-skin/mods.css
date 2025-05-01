@@ -628,8 +628,12 @@ input[type="submit"], input[type="button"] {
  padding:6px 14px 5px 14px;
 }
 
-input[type="submit"]:hover, input[type="button"]:hover, input[type="submit"]:focus, input[type="button"]:focus, .msk-dir-btn:hover, .msk-dir-btn:focus {
+input[type="submit"]:hover, input[type="button"]:hover, input[type="submit"]:focus, input[type="button"]:focus {
  background-color: var(--pq-current-color);
+}
+
+.msk-dir-btn:hover, .msk-dir-btn:focus, #viewToggle:hover, #viewToggle:focus {
+ background-color: var(--border-color);
 }
 
 input[type="submit"]:active, input[type="button"]:active {
@@ -780,12 +784,16 @@ table td input[type=checkbox] {
  border-radius:8px;
 }
 
+#pluginListPanel.pluginListList .pluginItem div:first-of-type div:first-of-type > img:first-of-type {
+ border-radius:4px;
+}
+
 .pluginList ul.thumbWrap li.thumbWrap {
  border:solid 1px var(--border-color);
 }
 
 #pluginButtonBar {
- padding-top:32px;
+ padding-top:20px;
  padding-bottom:4px;
  padding-left:4px;
  height:80px;
@@ -800,9 +808,28 @@ table td input[type=checkbox] {
  margin-left:12px;
 }
 
+.lms-91p #pluginButtonBar > span:first-of-type {
+ margin-left:48px;
+}
+
 #pluginButtonBar > span:last-of-type {
  float:right;
  margin-right:13px;
+}
+
+.pluginListList {
+ max-width: calc(100vw - 12px)!important;
+}
+
+#viewToggle {
+ height:24px!important;
+ width:24px!important;
+ position:fixed!important;
+ top:52px!important;
+ left:16px!important;
+ border:none!important;
+ border-radius:50%!important;
+ padding:4px;
 }
 
 .lms-settings-section-SETUP_PLUGINS_9 div#innerSettingsBlock {

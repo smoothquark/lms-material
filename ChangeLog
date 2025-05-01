@@ -1,3 +1,36 @@
+5.10.0
+------
+ 1. Only show 'roles' in '...' menu, not as categories in browse list.
+ 2. Only cache artists and albums lists if using default library view.
+ 3. Fix resetting some colour variables when changing colour setting from 'From
+    current cover'
+ 4. Change list/grid toggle icon to match LMS9.1's
+ 5. Allow 'Compilations' entry to be pinned, but map artist_id to LMS's current
+    ID when listing.
+ 6. Fix compilation tracks in 'All tracks' when called from release-type
+    header.
+ 7. Fix 'More...', and other actions, when browsing into other roles.
+ 8. Combine 'Apps' and 'Radio' perl side, to fix errors when no radio items.
+ 9. In queue menu if item is part of an album, or multi-disc, then use sub-menu
+    for remove actions.
+10. Move browse sort selection into dialog, to match queue sorting.
+11. Add action to remove artist from queue.
+12. When embed iframe only copy CSS variables if this is a LMS page.
+13. Show total playlists, works, and labels, if supported in LMS's
+    serverstatus.
+14. Add initial support for 'Record Labels' browse mode.
+15. Use URL as provided in 'updateinfo.json' for update info page.
+16. If clock screensaver is closed due to playback being started then switch
+    to now-playing view.
+
+5.9.1
+-----
+1. Fix genre images.
+2. Add ellipsis to album-style queue sub-titles.
+3. Try to prevent selecting 'Lyrion' colour scheme with tinted and coloured
+   toolbars.
+4. Don't allow usage of 'Lyrion' colour scheme in per-player setting.
+
 5.9.0
 -----
  1. Read half-star setting from ratings light, and use to control if can set
@@ -15,6 +48,11 @@
  9. Add support for LMS9's portraitid attribute - thanks to Michael Herger.
 10. If no playlist image found, use first valid image found in playlist tracks.
 11. Add (server side) option to enable playlist images.
+12. When prompting for discs to add to queue use '0' as keyboard shortcut for
+    'All discs', and '1' .. '9' for discs themselves.
+13. Fix padding in 'Manage players' dialog.
+14. If JSONRPC calls fail and no player is attached then show a warning
+    message indicating this.
 
 5.8.3
 -----
