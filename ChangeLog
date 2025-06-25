@@ -1,3 +1,36 @@
+5.10.3
+------
+1. Add AudioDrama, DJMix, Interview, and Spokenword release icons.
+2. When getting release icons remove hyphen, underscore, and spaces from
+   release name.
+3. When updating native app of selected player, also send player's IP address -
+   then the Material APK can use this to detect if that player is local.
+4. Prevent duplicate 'Scroll to' action.
+
+5.10.2
+------
+1. Re-add 'Compositions' action.
+2. Group all non-artist roles under 'Appearances' when listing an artist's
+   albums.
+3. Use circular images for works-composers as per other artists.
+4. Allow moving queue from group to a member.
+5. Show error message if attempt to transfer queue to a player it is already
+   synced with.
+6. Update Ubuntu and Fedora icons.
+7. Add simple 'es' icon for Ever-Solo players.
+8. Add simple 32-bit icon for ESP32 players.
+9. Add release icons for audio book, demo, and mixtape.
+
+5.10.1
+------
+1. Fix status icon colours in expanded now-playing when using coloured toolbars
+   with light themes.
+2. Fix listing of services when no artist items have been favourited.
+3. Re-add 'Appearances' in artist's release lists.
+4. Sort search track results by title.
+5. Fix shortcuts in navigation drawer for players that cannot power off.
+6. Fix show all values for roles in MAI track view.
+
 5.10.0
 ------
  1. Only show 'roles' in '...' menu, not as categories in browse list.
@@ -10,7 +43,7 @@
  6. Fix compilation tracks in 'All tracks' when called from release-type
     header.
  7. Fix 'More...', and other actions, when browsing into other roles.
- 8. Combine 'Apps' and 'Radio' perl side, to fix errors when no radio items.
+ 8. Combine 'Apps' and 'Radio' Perl side, to fix errors when no radio items.
  9. In queue menu if item is part of an album, or multi-disc, then use sub-menu
     for remove actions.
 10. Move browse sort selection into dialog, to match queue sorting.
@@ -22,6 +55,16 @@
 15. Use URL as provided in 'updateinfo.json' for update info page.
 16. If clock screensaver is closed due to playback being started then switch
     to now-playing view.
+17. Add overwrite confirmation when saving queue to an existing, but
+    different, name.
+18. Fix player name highlight on now-playing page when using coloured
+    toolbars.
+19. Use 'Dark Logic' for server settings if its installed, dark theme used, and
+    'Default' is configured for server settings.
+20. Add 'Wefunk Radio' to global search.
+21. Sort global search items by title.
+22. Add a modified version of Classic's prototype.js to not lose focus on text
+    edits when pressing 'Enter'
 
 5.9.1
 -----
@@ -2086,7 +2129,7 @@
 5. When downloading, if track has no album artist then see if we can use the
    value from the current browse history. If this still fails and the track is
    marked as part of a compilation then use LMS's 'Various Artists' string.
-6. Add support for sending notifications from perl to webapp.
+6. Add support for sending notifications from Perl to webapp.
 
 2.6.1
 -----
@@ -3106,7 +3149,7 @@
  5. Update vue-virtual-scroller, vue-touch-events, vue-lazyload, and vuex.
  6. Update iOS/iPhone/iPad checks.
  7. Take into account safe-area-inset-bottom for iOS.
- 8. Update user-agent checking code in perl code to (hopefully) detect iPadOS
+ 8. Update user-agent checking code in Perl code to (hopefully) detect iPadOS
     and serve correct icon.
  9. If '?ios' is added to URL query, add 12px padding to bottom navigation, to
     work-around issue with non-home button iOS devices.

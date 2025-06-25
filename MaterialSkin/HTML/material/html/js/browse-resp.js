@@ -10,7 +10,7 @@ const MORE_COMMANDS = new Set(["item_add", "item_insert", "itemplay"/*, "item_fa
 const MIXER_APPS = new Set(["musicip", "blissmixer", "musicsimilarity"]);
 const STREAM_SCHEMAS = new Set(["http", "https", "wavin"]);
 const HIDE_APPS_FOR_PARTY = new Set(["apps.accuradio", "apps.ardaudiothek", "apps.bbcsounds", "apps.cplus", "apps.globalplayeruk", "apps.iheartradio", "apps.lastmix", "apps.mixcloud", "apps.planetradio", "apps.podcasts", "apps.radiofrance", "apps.radionet", "apps.radionowplaying", "apps.radioparadise", "apps.squeezecloud", "apps.timesradio", "apps.ukradioplayer", "apps.virginradio", "apps.wefunk", "apps.phishin", "apps.walkwithme"]);
-const RELEASE_TYPES = ["ALBUM", "EP", "BOXSET", "BESTOF", "COMPILATION", "SINGLE"];
+const RELEASE_TYPES = ["ALBUM", "EP", "BOXSET", "BESTOF", "COMPILATION", "SINGLE", "APPEARANCE"];
 
 function itemText(i) {
     return i.title ? i.title : i.name ? i.name : i.caption ? i.caption : i.credits ? i.credits : undefined;
@@ -37,6 +37,9 @@ function releaseTypeHeader(rel) {
     }
     if (rel=="COMPILATION") {
         return i18n("Compilations");
+    }
+    if (rel=="APPEARANCE") {
+        return i18n("Appearances")
     }
     return rel.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
 }
@@ -1019,7 +1022,7 @@ function parseBrowseResp(data, parent, options, cacheKey) {
                             if (roleId>0) {
                                 resp.currentRoleIds = new Set([roleId]);
                             } else {
-                                resp.currentRoleIds=new Set(splitIntArray(roles));
+                                resp.currentRoleIds = new Set(splitIntArray(roles));
                             }
                         } else if (lower.startsWith("material_skin_role_id:")) {
                             mskRoleId = roleIntValue(lower.split(':')[1]);
@@ -1039,6 +1042,7 @@ function parseBrowseResp(data, parent, options, cacheKey) {
             var albumKeys = [];
             var releaseTypes = new Set();
             var ids = new Set();
+            let artistRoles = new Set([...ARTIST_ROLES, ...resp.currentRoleIds]);
 
             for (var idx=0, loop=data.result.albums_loop, loopLen=loop.length; idx<loopLen; ++idx) {
                 var i = makeHtmlSafe(loop[idx]);
@@ -1109,10 +1113,14 @@ function parseBrowseResp(data, parent, options, cacheKey) {
                     artists = [parent.title];
                 }
                 let group = "ALBUM";
-                let roles = new Set(isEmpty(i.role_ids) ? [] : splitIntArray(i.role_ids));
                 if (lmsOptions.groupByReleaseType>0) {
+                    let roles = new Set(isEmpty(i.role_ids) ? [] : splitIntArray(i.role_ids));
                     let isCompilation = undefined!=i.compilation && 1==parseInt(i.compilation) && (undefined==i.release_type || i.release_type.toUpperCase()=="ALBUM");
                     group = isCompilation ? "COMPILATION" : undefined==i.release_type ? "ALBUM" : i.release_type.toUpperCase();
+                    // Group all non standard artist roles under 'Appearances'
+                    if (!isCompilation && roles.size>0 && intersect(artistRoles, roles).size==0) {
+                        group = "APPEARANCE";
+                    }
                 }
                 releaseTypes.add(group);
 
@@ -1225,6 +1233,8 @@ function parseBrowseResp(data, parent, options, cacheKey) {
                         resp.subtitle=resp.items.length + " " + (lmsTrans[1==resp.items.length ? 0 : 1]);
                     } else if (releaseType=="COMPILATION") {
                         resp.subtitle=i18np("1 Compilation", "%1 Compilations", resp.items.length);
+                    } else if (releaseType=="APPEARANCE") {
+                        resp.subtitle=i18np("1 Appearance", "%1 Appearances", resp.items.length);
                     } else if (lmsOptions.supportReleaseTypes) {
                         resp.subtitle=i18np("1 Release", "%1 Releases", resp.items.length);
                     } else {
@@ -1257,10 +1267,11 @@ function parseBrowseResp(data, parent, options, cacheKey) {
             let highlighted = 0;
             let highlightRole = undefined;
             let reverse = false;
+            let isCompositions = false;
             let parentArtist = undefined;
             let showTrackNumbers = true;
             /*
-               If this track list is from 'all tracks' or 'compositions' then we might nbeed to group the tracks
+               If this track list is from 'all tracks' or 'compositions' then we might need to group the tracks
                0 = no grouping
                1 = album
                2 = title
@@ -1306,6 +1317,8 @@ function parseBrowseResp(data, parent, options, cacheKey) {
                     } else if (param.startsWith(MSK_SORT_KEY)) {
                         msksort = param.split(':')[1];
                         sortTracks = msksort=="yearalbumtrack" ? 1 : msksort=="artisttitle" ? 2 : msksort=="yeartitle" ? 3 : 0;
+                    } else if (param=="material_skin_compositions:1") {
+                        isCompositions = true;
                     } else if (param.startsWith("material_skin_artist:")) {
                         parentArtist = param.split(':')[1];
                     } else if (param.startsWith("work_id:")) {
@@ -1319,11 +1332,11 @@ function parseBrowseResp(data, parent, options, cacheKey) {
             if (undefined!=msksort) {
                 sort=msksort;
             }
-            if (isWork || (undefined!=sort && isAllTracks && ("title"==sort || "artisttitle"==sort || "yeartitle"==sort))) {
+            if (isWork || (undefined!=sort && (isAllTracks || isCompositions) && ("title"==sort || "artisttitle"==sort || "yeartitle"==sort))) {
                 showTrackNumbers = false;
             }
             // Should we group tracks?
-            if (isAllTracks) {
+            if (isAllTracks || isCompositions) {
                 allTracksGrouping = ("albumtrack"==sort || "yearalbumtrack"==sort) ? 1 : "title"==sort ? 2 : "artisttitle"==sort ? 3 : 0;
             }
 
@@ -1431,7 +1444,7 @@ function parseBrowseResp(data, parent, options, cacheKey) {
                         subtitleContext=i18n('<obj>from</obj> %1', buildAlbumLine(i, "browse", false)).replaceAll("<obj>", "<obj class=\"ext-details\">");
                     }
                 }
-                if (!isSearchResult && !isAllTracks) {
+                if (!isSearchResult && !isAllTracks && !isCompositions) {
                     if (undefined!=i.disc) {
                         let discNum = parseInt(i.disc);
                         if (discs.has(discNum)) {
@@ -1562,6 +1575,7 @@ function parseBrowseResp(data, parent, options, cacheKey) {
                               id: "track_id:"+i.id,
                               title: title,
                               baseTitle: baseTitle,
+                              plainTitle: isSearchResult ? i.title : undefined,
                               subtitle: subtitle,
                               subtitleContext: subtitleContext,
                               //icon: "music_note",
@@ -1653,7 +1667,7 @@ function parseBrowseResp(data, parent, options, cacheKey) {
                         }
                         resp.items.splice(groups[i][0]+i, 0,
                                           {title: groups[i][1], id:FILTER_PREFIX+i, header:true,
-                                           subtitle: i18np("1 Track", "%1 Tracks", count), durationStr:formatSeconds(duration),
+                                           subtitle: isCompositions ? i18np("1 Composition", "%1 Compositions", count) : i18np("1 Track", "%1 Tracks", count), durationStr:formatSeconds(duration),
                                            menu:[PLAY_ALL_ACTION, INSERT_ALL_ACTION, PLAY_SHUFFLE_ALL_ACTION, ADD_ALL_ACTION]});
                         resp.numHeaders++;
                     }
@@ -1776,7 +1790,7 @@ function parseBrowseResp(data, parent, options, cacheKey) {
 
                         resp.items.splice(disc.pos+d, 0,
                                            {title: title ? title : i18n("Disc %1", k), jump:disc.pos+d,
-                                            subtitle: i18np("1 Track", "%1 Tracks", disc.total), durationStr:formatSeconds(disc.duration),
+                                            subtitle: isCompositions ? i18np("1 Composition", "%1 Compositions", disc.total) : i18np("1 Track", "%1 Tracks", disc.total), durationStr:formatSeconds(disc.duration),
                                             id:FILTER_PREFIX+k, header:true, menu:[PLAY_ALL_ACTION, INSERT_ALL_ACTION, PLAY_SHUFFLE_ALL_ACTION, ADD_ALL_ACTION]});
                         resp.numHeaders++;
                         d++;
@@ -1805,7 +1819,7 @@ function parseBrowseResp(data, parent, options, cacheKey) {
             let totalTracks=resp.items.length-resp.numHeaders;
             let totalDurationStr=formatSeconds(totalDuration);
             resp.subtitle=totalTracks+'<obj class="mat-icon music-note">music_note</obj>'+totalDurationStr;
-            resp.plainsubtitle=i18np("1 Track", "%1 Tracks", totalTracks)+SEPARATOR+totalDurationStr;
+            resp.plainsubtitle=(isCompositions ? i18np("1 Composition", "%1 Compositions", totalTracks) : i18np("1 Track", "%1 Tracks", totalTracks))+SEPARATOR+totalDurationStr;
             // set compilationAlbumArtist on first entry so that browse-view can use this
             if (lmsOptions.noArtistFilter && undefined!=compilationAlbumArtist & resp.items.length>0) {
                 resp.items[0].compilationAlbumArtist = compilationAlbumArtist;

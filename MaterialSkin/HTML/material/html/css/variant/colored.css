@@ -28,8 +28,12 @@
  background:rgba(255, 255, 255, 0.3333)!important;
 }
 
-.lms-toolbar .v-btn__content i.active-btn, .maintoolbar-player-icon, .player-status-icon {
+.lms-toolbar .v-btn__content i.active-btn, .player-status-icon {
  color:var(--light-text-color) !important;
+}
+
+.np-full .player-status-icon:is(.theme--light) {
+ color:var(--dark-text-color) !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -39,6 +43,9 @@
  .lms-toolbar .link-item:hover {
   color:var(--light-text-color) !important;
   opacity:0.75;
+ }
+.np-full .player-status-icon:is(.theme--light):hover {
+  color:var(--dark-text-color) !important;
  }
  .active-nav:hover, .inactive-nav:hover {
   opacity:0.8!important;
@@ -60,5 +67,5 @@
 }
 
 #app:not(.np-full) .v-dialog .v-card__title .v-icon {
-color:var(--light-text-color) !important;
+ color:var(--light-text-color) !important;
 }

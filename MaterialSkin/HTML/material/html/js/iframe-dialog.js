@@ -7,6 +7,8 @@
 'use strict';
 
 const SLOW_PAGES = new Set(['SETUP_PLUGINS']);
+const LMS_PAGES =  new Set(['server', 'player', 'extras', 'lms', 'help']);
+const LMS_STD_SETTINGS_PAGES =  new Set(['server', 'player']);
 
 let useDefaultSkinForServerSettings = true;
 
@@ -555,8 +557,7 @@ function applyModifications(page, svgCol, darkUi, src) {
             return;
         }
 
-        var isLms = new Set(['server', 'player', 'extras', 'lms', 'help']).has(page);
-        if (isLms) {
+        if (LMS_PAGES.has(page)) {
             copiedVars = copyVars(iframe);
             content.documentElement.getElementsByTagName("body")[0].classList.add(IS_MOBILE ? "msk-is-touch" : "msk-is-non-touch");
             if (darkUi) {
@@ -592,8 +593,8 @@ function applyModifications(page, svgCol, darkUi, src) {
             }
         }
 
-        if ('dserver'==page) {
-            let cancelBtn = content.getElementById("cancel");
+        if ('dserver'==page || 'dlserver'==page) {
+            let cancelBtn = content.getElementById('dlserver'==page ? "ext-gen50" : "cancel");
             if (cancelBtn!=undefined) {
                 cancelBtn.onclick = function() {
                     bus.$emit('iframe-close');
@@ -711,7 +712,7 @@ Vue.component('lms-iframe-dialog', {
     template: `
 <div id="iframe-page">
  <v-dialog v-model="show" v-if="show" persistent no-click-animation scrollable fullscreen>
-  <v-card v-bind:class="{'def-server':'dserver'==page}">
+  <v-card v-bind:class="{'def-server':'dserver'==page, 'dark-logic':'dlserver'==page}">
    <v-card-title class="settings-title">
     <v-toolbar app-data class="dialog-toolbar" @mousedown="mouseDown" id="iframe-toolbar">
      <lms-windowcontrols v-if="queryParams.nativeTitlebar && queryParams.tbarBtnsPos=='l'"></lms-windowcontrols>
@@ -792,7 +793,7 @@ Vue.component('lms-iframe-dialog', {
             // Delay setting URL for 50ms - otherwise get two requests, first is cancelled...
             // ...no idea why!
             if (lmsOptions.useDefaultForSettings==1 && window.innerWidth>=MIN_DEF_SETTINGS_WIDTH && page.indexOf("server/basic.html")>0) {
-                page = page.replace("material/settings/server/basic.html", "Default/settings/index.html");
+                page = page.replace("material/settings/server/basic.html", (LMS_DARK_LOGIC==1 && this.$store.state.darkUi ? "DarkLogic" : "Default")+"/settings/index.html");
                 if (this.$store.state.player) {
                     page+="?player="+this.$store.state.player.id;
                 }
@@ -804,13 +805,15 @@ Vue.component('lms-iframe-dialog', {
                                 ? "server"
                                 : page.indexOf("Default/settings/index.html")>0
                                     ? "dserver"
-                                    : page.startsWith("plugins/") && (page.indexOf("?player=")>0 || page.indexOf("&player=")>0)
-                                        ? "extras"
-                                       : page == '/material/html/docs/index.html'
-                                            ? "lms" // tech info, or 'extra' entry
-                                            : page == '/material/html/material-skin/index.html'
-                                                ? "help"
-                                                : "other";
+                                    : page.indexOf("DarkLogic/settings/index.html")>0
+                                        ? "dlserver"
+                                        : page.startsWith("plugins/") && (page.indexOf("?player=")>0 || page.indexOf("&player=")>0)
+                                            ? "extras"
+                                            : page == '/material/html/docs/index.html'
+                                                ? "lms" // tech info, or 'extra' entry
+                                                : page == '/material/html/material-skin/index.html'
+                                                    ? "help"
+                                                    : "other";
             this.show = true;
             this.showMenu = false;
             this.choiceMenu = {show:false, x:0}
@@ -878,7 +881,7 @@ Vue.component('lms-iframe-dialog', {
             }
         }.bind(this));
         bus.$on('colorChanged', function() {
-            if (this.show) {
+            if (this.show && LMS_PAGES.has(this.page)) {
                 copyVars(document.getElementById("embeddedIframe"));
             }
         }.bind(this));
@@ -924,21 +927,39 @@ Vue.component('lms-iframe-dialog', {
                 bus.$emit('browse-home');
             }
         },
-        close() {
-            if (iframeInfo.settingModified) {
-                confirm(i18n("Some settings were changed. Do you want to save them?"), i18n('Save'), i18n('Cancel'), i18n('Discard')).then(res => {
-                    if (0==res) { // Cancel
-                        return;
+        confirmClose() {
+            confirm(i18n("Some settings were changed. Do you want to save them?"), i18n('Save'), i18n('Cancel'), i18n('Discard')).then(res => {
+                if (0==res) { // Cancel
+                    return;
+                }
+                if (1==res) { // Save
+                    document.getElementById("embeddedIframe").contentDocument.forms.settingsForm.submit();
+                }
+                setTimeout(function() {
+                    iframeInfo.settingModified = false;
+                    this.close(true);
+                }.bind(this), 100);
+            });
+        },
+        close(forceClose) {
+            if (!forceClose) {
+                if (iframeInfo.settingModified) {
+                    this.confirmClose();
+                    return;
+                } else if (LMS_STD_SETTINGS_PAGES.has(this.page) && undefined!=iframeInfo.content) {
+                    // prototype.js, taken from Classic, has been modified so as to not prevent
+                    // using 'Enter' in textareas. However, this seems to break change detection.
+                    // So, when clsing dialog check if active element is a textarea and if it has
+                    // been modified.
+                    let elem = iframeInfo.content.activeElement;
+                    if (undefined!=elem && 'TEXTAREA'==elem.nodeName) {
+                        iframeInfo.settingModified = elem.value != elem.defaultValue;
+                        if (iframeInfo.settingModified) {
+                            this.confirmClose();
+                            return;
+                        }
                     }
-                    if (1==res) { // Save
-                        document.getElementById("embeddedIframe").contentDocument.forms.settingsForm.submit();
-                    }
-                    setTimeout(function() {
-                        iframeInfo.settingModified = false;
-                        this.close();
-                    }.bind(this), 100);
-                });
-                return;
+                }
             }
 
             this.show = false;
@@ -948,7 +969,7 @@ Vue.component('lms-iframe-dialog', {
             this.src = undefined;
             iframeInfo.content=undefined;
             bus.$emit('iframeClosed', this.page=='player');
-            if (this.page=='server' || this.page=='dserver') {
+            if (this.page=='server' || this.page=='dserver' || this.page=='dlserver') {
                 if (LMS_VERSION>=80400) {
                     bus.$emit('refreshServerStatus');
                 } else {
@@ -975,7 +996,7 @@ Vue.component('lms-iframe-dialog', {
             } else {
                 confirm(act.text, act.confirm).then(res => {
                     if (res) {
-                        lmsCommand("server"==this.page || "dserver"==this.page ? "" : this.$store.state.player.id, act.cmd);
+                        lmsCommand("server"==this.page || "dserver"==this.page || "dlserver"==this.page ? "" : this.$store.state.player.id, act.cmd);
                         this.close();
                     }
                 });

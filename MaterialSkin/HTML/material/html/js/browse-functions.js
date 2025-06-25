@@ -538,13 +538,13 @@ function browseHandleListResponse(view, item, command, resp, prevPage, appendIte
                 });
             }
             // Artist from online service, but no albums? Add links to services...
-            if (listingArtistAlbums && view.items.length==0) {
+            if (listingArtistAlbums && view.items.length==0 && view.onlineServices.length>0) {
                 view.items.push({id:"intro", title:i18n("No albums have been favorited for this artist. Please use the entries below to look for albums on your online services."), type:"text"});
                 canAddAlbumSort = false;
-                for (var i=0, loop=view.currentActions, len=loop.length; i<len; ++i) {
-                    if (loop[i].isService) {
-                        view.items.push({id:loop[i].id ? loop[i].id : "ca"+i, title:loop[i].title, do:loop[i].do, svg:loop[i].svg, icon:loop[i].icon, currentAction:true, artist_id:artist_id});
-                    }
+                for (var i=0, loop=view.onlineServices, len=loop.length; i<len; ++i) {
+                    var emblem = getEmblem(loop[i].toLowerCase()+':');
+                    view.items.push({title:/*!i81n*/'wimp'==loop[i] ? 'Tidal' : capitalize(loop[i]),
+                                     svg:emblem ? emblem.name : undefined, id:loop[i], artist_id:artist_id, currentAction:true});
                 }
             }
         } else if (undefined!=resp.actionItems && resp.actionItems.length>0) {
@@ -754,8 +754,7 @@ function browseHandleListResponse(view, item, command, resp, prevPage, appendIte
                 for (var i=0, loop=view.onlineServices, len=loop.length; i<len; ++i) {
                     var emblem = getEmblem(loop[i].toLowerCase()+':');
                     actions.push({title:/*!i81n*/'wimp'==loop[i] ? 'Tidal' : capitalize(loop[i]),
-                                svg:emblem ? emblem.name : undefined, id:loop[i], isService:true,
-                                artist_id:artist_id});
+                                  svg:emblem ? emblem.name : undefined, id:loop[i], artist_id:artist_id});
                 }
                 if (LMS_P_YT) {
                     actions.push({title:/*NoTrans*/'YouTube', svg:'youtube',
@@ -797,9 +796,10 @@ function browseReplaceAction(view, id, actions, singleText, multiText, key) {
                     view.currentActions.splice(i, 0, {action:GROUP, title:multiText, actions:actions, key:key, expanded:getLocalStorageBool(key+"-expanded", false)});
                 }
             }
-            return;
+            return insertPos;
         }
     }
+    return -1;
 }
 
 function browseGetRoles(view, curitem, currentRoleIds) {
@@ -810,6 +810,7 @@ function browseGetRoles(view, curitem, currentRoleIds) {
     lmsList('', command.command, command.params, 0, LMS_BATCH_SIZE, true, view.nextReqId()).then(({data}) => {
         logJsonMessage("RESP", data);
         let actions = [];
+        let haveComposerRole = false;
         if (id==view.current.id && data.result && undefined!=data.result.roles_loop) {
             // Create lists of artist and non-artist roles
             let validArtistRoleIds = [];
@@ -863,6 +864,7 @@ function browseGetRoles(view, curitem, currentRoleIds) {
                         svg = 'role-band';
                     } else if (COMPOSER_ARTIST_ROLE==rid) {
                         svg = 'composer';
+                        haveComposerRole = true;
                     } else if (CONDUCTOR_ARTIST_ROLE==rid) {
                         svg = 'conductor';
                     } else {
@@ -875,7 +877,12 @@ function browseGetRoles(view, curitem, currentRoleIds) {
                 actions.sort(titleSort);
             }
         }
-        browseReplaceAction(view, ROLES_PLACEHOLDER, actions, i18n("Browse by %1"), i18n("Browse by"), "browse-by");
+        let pos = browseReplaceAction(view, ROLES_PLACEHOLDER, actions, i18n("Browse by %1"), i18n("Browse by"), "browse-by");
+        if (haveComposerRole && pos>=0) {
+            var params = [SORT_KEY+TRACK_SORT_PLACEHOLDER, PLAYLIST_TRACK_TAGS, curitem.id, 'role_id:2', 'material_skin_artist:'+curitem.title, 'material_skin_compositions:1']; 
+            browseAddLibId(view, params);
+            view.currentActions.splice(pos, 0, ({title:i18n('Compositions'), svg:'composer', do:{ command: ['tracks'], params: params}, weight:81, stdItem:STD_ITEM_COMPOSITION_TRACKS, udr:2}));
+        }
     }).catch(err => {
         // Remove placeholder
         console.log(err);

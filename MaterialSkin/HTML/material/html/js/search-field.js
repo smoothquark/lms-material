@@ -6,7 +6,7 @@
  */
 'use strict';
 
-const SEARCH_OTHER = new Set(["band's campout", 'bbc sounds', 'deezer', 'qobuz', 'spotty', 'tidal', 'youtube']);
+const SEARCH_OTHER = new Set(["band's campout", 'bbc sounds', 'deezer', 'qobuz', 'spotty', 'tidal', 'youtube', 'wefunk radio']);
 
 const SEARCH_ARTISTS_CAT = 1;
 const SEARCH_ALBUMS_CAT = 2;
@@ -14,6 +14,11 @@ const SEARCH_WORKS_CAT = 3;
 const SEARCH_TRACKS_CAT = 4;
 const SEARCH_PLAYLISTS_CAT = 5;
 const SEARCH_OTHER_CAT = 6;
+
+function searchTrackSort(a, b) {
+    let res = fixedSort(undefined==a.plainTitle ? a.title : a.plainTitle, undefined==b.plainTitle ? b.title : b.plainTitle);
+    return 0==res ? fixedSort(a.title, b.title) : res;
+}
 
 function buildSearchResp(results) {
     let items=[];
@@ -205,6 +210,7 @@ Vue.component('lms-search-field', {
                             }
                         }
                         if (resp.items.length>0) {
+                            resp.items.sort(SEARCH_TRACKS_CAT==command.cat ? searchTrackSort : titleSort);
                             this.results.push({command:command, params:command.params, resp:resp});
                         }
                         this.doSearch();
